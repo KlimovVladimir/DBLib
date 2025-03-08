@@ -1,5 +1,8 @@
 #include <libdb.h>
 
+#define RED "\x1B[31m"
+#define RESET "\x1B[0m"
+
 char *uintToBinary(unsigned int num)
 {
     char *res = malloc(4);
@@ -17,7 +20,7 @@ char *uintToBinary(unsigned int num)
 int main(int argc, char *argv[])
 {
     if (argc != 4) {
-        fprintf(stderr, "%s:Wrong count of arguments\n", __FUNCTION__);
+        fprintf(stderr, RED "%s:Wrong count of arguments\n" RESET, __FUNCTION__);
         return 1;
     }
 
