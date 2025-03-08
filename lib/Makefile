@@ -10,7 +10,6 @@ CFLAGS = -fPIC -Wall -Wextra -O2 -g $(INCLUDES)
 LDFLAGS = -shared
 RM = rm -f
 
-.PHONY: all
 all: ${TARGET_LIB}
 
 $(TARGET_LIB): $(OBJS)
@@ -21,10 +20,8 @@ $(SRCS:.c=.d):%.d:%.c
 
 include $(SRCS:.c=.d)
 
-.PHONY: install
 install:
 	cp ${TARGET_LIB} /usr/local/lib/
 
-.PHONY: clean
 clean:
 	-${RM} ${TARGET_LIB} ${OBJS} $(SRCS:.c=.d)

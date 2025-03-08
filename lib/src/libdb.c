@@ -1,18 +1,12 @@
 #include <libdb.h>
 
-void hello()
-{
-    printf("hello, world\n");
-}
-
 int StoreDump(char *pathOutFile, StatData *data, int size)
 {
     FILE *fileOut;
 
     fileOut = fopen(pathOutFile, "w");
     
-    if (fileOut == NULL)
-    {
+    if (fileOut == NULL) {
         fprintf(stderr, "%s:Failed to open %s\n", __FUNCTION__, pathOutFile);
         return ERROR_OPEN_FILE;
     }
@@ -20,57 +14,82 @@ int StoreDump(char *pathOutFile, StatData *data, int size)
     for (int i = 0; i < size; i++)
         fprintf(fileOut, "%ld %d %f %u %u\n", data[i].id, data[i].count, data[i].cost, data[i].primary, data[i].mode);
 
-    fclose(fileOut); 
+    fclose(fileOut);
 
     return SUCCESS;
 }
 
-int LoadDump(char *pathOutFile, StatData *data)
+int LoadDump(char *pathOutFile, StatData **data, int* size)
 {
     FILE *fileOut;
-    int count = 0;
+    long id;
+    int count;
+    float cost;
     unsigned primary, mode;
 
     fileOut = fopen(pathOutFile, "r");
     
-    if (fileOut == NULL)
-    {
+    if (fileOut == NULL) {
         fprintf(stderr, "%s:Failed to open %s\n", __FUNCTION__, pathOutFile);
         return ERROR_OPEN_FILE;
     }
 
-    while (fscanf(fileOut, "%ld %d %f %u %u", &data[count].id, &data[count].count, &data[count].cost, &primary, &mode) != EOF)
-    {
-        if (primary > 1 || mode > 7)
-        {
-            fprintf(stderr, "%s:Readed invalid value at %d line from file %s\n", __FUNCTION__, count + 1, pathOutFile);
-            fclose(fileOut); 
+    *data = malloc(sizeof(StatData));
+
+#ifdef DUMP_ARRAYS
+    printf("|------------%s %s----------|\n", __FUNCTION__, pathOutFile);
+#endif
+
+    while (fscanf(fileOut, "%ld %d %f %u %u", &id, &count, &cost, &primary, &mode) != EOF) {
+        if (primary > 1 || mode > 7) {
+            fprintf(stderr, "%s:Readed invalid value at %d line from file %s\n", __FUNCTION__, *size + 1, pathOutFile);
+            fclose(fileOut);
+            free(*data);
             return ERROR_INVALID_VALUE;
         }
 
-        data[count].primary = primary;
-        data[count].mode = mode;
-        printf("| %ld | %d | %f | %u | %u |\n", data[count].id, data[count].count, data[count].cost, data[count].primary, data[count].mode);
-        count++;
+        if (*size > 0) {
+            StatData *dataTmp = realloc(*data, (sizeof(StatData) * ((*size) + 1)));
+            if (dataTmp == NULL) {
+                free(*data);
+                return ERROR_REALLOC_FAILURE;
+            } else {
+                *data = dataTmp;
+            }
+        }
+
+        (*data)[*size].id = id;
+        (*data)[*size].count = count;
+        (*data)[*size].cost = cost;
+        (*data)[*size].primary = primary;
+        (*data)[*size].mode = mode;
+#ifdef DUMP_ARRAYS
+        printf("|%d:| %ld | %d | %f | %u | %u |\n", *size, (*data)[*size].id, (*data)[*size].count, (*data)[*size].cost, (*data)[*size].primary, (*data)[*size].mode);
+#endif
+        (*size)++;
     }
 
-    fclose(fileOut); 
+#ifdef DUMP_ARRAYS
+    printf("|---------------------------------|\n\n");
+#endif
 
-    return count;
+    fclose(fileOut);
+
+    return SUCCESS;
 }
 
 static inline int compareId(const void *a, const void *b)
 {
-  const StatData da = *((const StatData *) a);
-  const StatData db = *((const StatData *) b);
-  return (da.id < db.id) ? -1 : (da.id == db.id) ? 0 : 1;
+    const StatData da = *((const StatData *) a);
+    const StatData db = *((const StatData *) b);
+    return (da.id < db.id) ? -1 : (da.id == db.id) ? 0 : 1;
 }
 
-int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData *dataOut, int sizeOut)
+int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **dataOut, int* sizeOut)
 {
+    int i, j = 0;
 
-    StatData OUTMASS[100] = { 0 };
-    int OUTCOUNT = 0;
+    *dataOut = malloc((sizeA + sizeB) * sizeof(StatData));
 
     int err;
 
@@ -78,99 +97,140 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData *d
     if (err) {
         fprintf(stderr, "%s:Timsort returned error %d\n", __FUNCTION__, err);
     }
+#ifdef DUMP_ARRAYS
     else {
+        printf("|------------%s sorted 1st array by id----------|\n", __FUNCTION__);
         for (int i = 0; i < sizeA; ++i) {
-            printf("| %ld | %d | %f | %u | %u |\n", dataA[i].id, dataA[i].count, dataA[i].cost, dataA[i].primary, dataA[i].mode);
+            printf("|%d:| %ld | %d | %f | %u | %u |\n", i, dataA[i].id, dataA[i].count, dataA[i].cost, dataA[i].primary, dataA[i].mode);
         }
-        printf("|----------------------|\n");
+        printf("|---------------------------------|\n\n");
     }
+#endif
 
     err = timsort(dataB, sizeB, sizeof(dataB[0]), compareId);
     if (err) {
         fprintf(stderr, "%s:Timsort returned error %d\n", __FUNCTION__, err);
     }
+#ifdef DUMP_ARRAYS
     else {
+        printf("|------------%s sorted 2nd array by id----------|\n", __FUNCTION__);
         for (int i = 0; i < sizeB; ++i) {
-            printf("| %ld | %d | %f | %u | %u |\n", dataB[i].id, dataB[i].count, dataB[i].cost, dataB[i].primary, dataB[i].mode);
+            printf("|%d:| %ld | %d | %f | %u | %u |\n", i, dataB[i].id, dataB[i].count, dataB[i].cost, dataB[i].primary, dataB[i].mode);
         }
-        printf("|----------------------|\n");
+        printf("|---------------------------------|\n\n");
     }
+#endif
 
-
-    int maxSize = (sizeA > sizeB) ? sizeA : sizeB;
-    for (int i,j = 0; i < sizeA || j < sizeB;)
-    {
-        if (i < sizeA && j < sizeB)
-        {
-            if (dataA[i].id == dataB[j].id)
-            {
-                OUTMASS[OUTCOUNT].id = dataA[i].id;
-                OUTMASS[OUTCOUNT].count = OUTMASS[OUTCOUNT].count + dataA[i].count + dataB[j].count;
-                OUTMASS[OUTCOUNT].cost = OUTMASS[OUTCOUNT].cost + dataA[i].cost + dataB[j].cost;
-                OUTMASS[OUTCOUNT].primary = (OUTMASS[OUTCOUNT].primary == 0) ? OUTMASS[OUTCOUNT].primary : (dataA[i].primary == 0) ? dataA[i].primary : dataB[j].primary;
-                OUTMASS[OUTCOUNT].mode = MAX(MAX(OUTMASS[OUTCOUNT].mode, dataA[i].mode), dataB[j].mode);
-
-                i++;
-                j++;
-                continue;
+    while (i < sizeA && j < sizeB) {
+        if (dataA[i].id < dataB[j].id) {
+            if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataA[i].id) {
+                (*dataOut)[*sizeOut].id = dataA[i].id;
+                (*dataOut)[*sizeOut].count = dataA[i].count;
+                (*dataOut)[*sizeOut].cost = dataA[i].cost;
+                (*dataOut)[*sizeOut].primary = dataA[i].primary;
+                (*dataOut)[*sizeOut].mode = dataA[i].mode;
+                (*sizeOut)++;
             }
-            else if (dataA[i].id < dataB[j].id)
-            {
-                OUTMASS[OUTCOUNT].id = dataA[i].id;
-                OUTMASS[OUTCOUNT].count = dataA[i].count;
-                OUTMASS[OUTCOUNT].cost = dataA[i].cost;
-                OUTMASS[OUTCOUNT].primary = dataA[i].primary;
-                OUTMASS[OUTCOUNT].mode = dataA[i].mode;
-                OUTCOUNT++;
-                i++;
-                continue;
+            else if ((*dataOut)[*sizeOut - 1].id == dataA[i].id) {
+                (*dataOut)[*sizeOut - 1].id = dataA[i].id;
+                (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataA[i].count;
+                (*dataOut)[*sizeOut - 1].cost = (*dataOut)[*sizeOut - 1].cost + dataA[i].cost;
+                (*dataOut)[*sizeOut - 1].primary = ((*dataOut)[*sizeOut - 1].primary == 0) ? (*dataOut)[*sizeOut - 1].primary : dataA[i].primary;
+                (*dataOut)[*sizeOut - 1].mode = MAX((*dataOut)[*sizeOut - 1].mode, dataA[i].mode);
             }
-            else
-            {
-                OUTMASS[OUTCOUNT].id = dataB[j].id;
-                OUTMASS[OUTCOUNT].count = dataB[j].count;
-                OUTMASS[OUTCOUNT].cost = dataB[j].cost;
-                OUTMASS[OUTCOUNT].primary = dataB[j].primary;
-                OUTMASS[OUTCOUNT].mode = dataB[j].mode;
-                OUTCOUNT++;
-                j++;
-                continue;
-            }
-        }
-        else if (i < sizeA)
-        {
-            OUTMASS[OUTCOUNT].id = dataA[i].id;
-            OUTMASS[OUTCOUNT].count = dataA[i].count;
-            OUTMASS[OUTCOUNT].cost = dataA[i].cost;
-            OUTMASS[OUTCOUNT].primary = dataA[i].primary;
-            OUTMASS[OUTCOUNT].mode = dataA[i].mode;
-            OUTCOUNT++;
             i++;
-        }
-        else if (j < sizeB)
-        {
-            OUTMASS[OUTCOUNT].id = dataB[j].id;
-            OUTMASS[OUTCOUNT].count = dataB[j].count;
-            OUTMASS[OUTCOUNT].cost = dataB[j].cost;
-            OUTMASS[OUTCOUNT].primary = dataB[j].primary;
-            OUTMASS[OUTCOUNT].mode = dataB[j].mode;
-            OUTCOUNT++;
+        } else if (dataA[i].id > dataB[j].id) {
+            if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataB[j].id) {
+                (*dataOut)[*sizeOut].id = dataB[j].id;
+                (*dataOut)[*sizeOut].count = dataB[j].count;
+                (*dataOut)[*sizeOut].cost = dataB[j].cost;
+                (*dataOut)[*sizeOut].primary = dataB[j].primary;
+                (*dataOut)[*sizeOut].mode = dataB[j].mode;
+                (*sizeOut)++;
+            }
+            else if ((*dataOut)[*sizeOut - 1].id == dataB[j].id) {
+                (*dataOut)[*sizeOut - 1].id = dataB[j].id;
+                (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataB[j].count;
+                (*dataOut)[*sizeOut - 1].cost = (*dataOut)[*sizeOut - 1].cost + dataB[j].cost;
+                (*dataOut)[*sizeOut - 1].primary = ((*dataOut)[*sizeOut - 1].primary == 0) ? (*dataOut)[*sizeOut - 1].primary : dataB[j].primary;
+                (*dataOut)[*sizeOut - 1].mode = MAX((*dataOut)[*sizeOut - 1].mode, dataB[j].mode);
+            }
+            j++;
+        } else {
+            if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataA[i].id) {
+                (*dataOut)[*sizeOut].id = dataA[i].id;
+                (*dataOut)[*sizeOut].count = dataA[i].count + dataB[j].count;
+                (*dataOut)[*sizeOut].cost = dataA[i].cost + dataB[j].cost;
+                (*dataOut)[*sizeOut].primary = (dataA[i].primary == 0) ? dataA[i].primary : dataB[j].primary;
+                (*dataOut)[*sizeOut].mode = MAX(dataA[i].mode, dataB[j].mode);
+                (*sizeOut)++;
+            }
+            else {
+                (*dataOut)[*sizeOut - 1].id = dataA[i].id;
+                (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataA[i].count + dataB[j].count;
+                (*dataOut)[*sizeOut - 1].cost = (*dataOut)[*sizeOut - 1].cost + dataA[i].cost + dataB[j].cost;
+                (*dataOut)[*sizeOut - 1].primary = ((*dataOut)[*sizeOut - 1].primary == 0) ? (*dataOut)[*sizeOut - 1].primary : (dataA[i].primary == 0) ? dataA[i].primary : dataB[j].primary;
+                (*dataOut)[*sizeOut - 1].mode = MAX(MAX((*dataOut)[*sizeOut - 1].mode, dataA[i].mode), dataB[j].mode);
+            }
+            i++;
             j++;
         }
     }
 
-    for (int i = 0; i < OUTCOUNT; ++i) {
-        printf("| %ld | %d | %f | %u | %u |\n", OUTMASS[i].id, OUTMASS[i].count, OUTMASS[i].cost, OUTMASS[i].primary, OUTMASS[i].mode);
+    while (i < sizeA) {
+        if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataA[i].id) {
+            (*dataOut)[*sizeOut].id = dataA[i].id;
+            (*dataOut)[*sizeOut].count = dataA[i].count;
+            (*dataOut)[*sizeOut].cost = dataA[i].cost;
+            (*dataOut)[*sizeOut].primary = dataA[i].primary;
+            (*dataOut)[*sizeOut].mode = dataA[i].mode;
+            (*sizeOut)++;
+        }
+        else if ((*dataOut)[*sizeOut - 1].id == dataA[i].id) {
+            (*dataOut)[*sizeOut - 1].id = dataA[i].id;
+            (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataA[i].count;
+            (*dataOut)[*sizeOut - 1].cost = (*dataOut)[*sizeOut - 1].cost + dataA[i].cost;
+            (*dataOut)[*sizeOut - 1].primary = ((*dataOut)[*sizeOut - 1].primary == 0) ? (*dataOut)[*sizeOut - 1].primary : dataA[i].primary;
+            (*dataOut)[*sizeOut - 1].mode = MAX((*dataOut)[*sizeOut - 1].mode, dataA[i].mode);
+        }
+        i++;
     }
+
+    while (j < sizeB) {
+        if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataB[j].id) {
+            (*dataOut)[*sizeOut].id = dataB[j].id;
+            (*dataOut)[*sizeOut].count = dataB[j].count;
+            (*dataOut)[*sizeOut].cost = dataB[j].cost;
+            (*dataOut)[*sizeOut].primary = dataB[j].primary;
+            (*dataOut)[*sizeOut].mode = dataB[j].mode;
+            (*sizeOut)++;
+        }
+        else if ((*dataOut)[*sizeOut - 1].id == dataB[j].id) {
+            (*dataOut)[*sizeOut - 1].id = dataB[j].id;
+            (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataB[j].count;
+            (*dataOut)[*sizeOut - 1].cost = (*dataOut)[*sizeOut - 1].cost + dataB[j].cost;
+            (*dataOut)[*sizeOut - 1].primary = ((*dataOut)[*sizeOut - 1].primary == 0) ? (*dataOut)[*sizeOut - 1].primary : dataB[j].primary;
+            (*dataOut)[*sizeOut - 1].mode = MAX((*dataOut)[*sizeOut - 1].mode, dataB[j].mode);
+        }
+        j++;
+    }
+
+#ifdef DUMP_ARRAYS 
+    printf("|------------%s merged array----------|\n", __FUNCTION__);
+    for (int i = 0; i < *sizeOut; ++i) {
+        printf("|%d:| %ld | %d | %f | %u | %u |\n", i, (*dataOut)[i].id, (*dataOut)[i].count, (*dataOut)[i].cost, (*dataOut)[i].primary, (*dataOut)[i].mode);
+    }
+    printf("|---------------------------------|\n\n");
+#endif
 
     return SUCCESS;
 }
 
 static inline int compareCost(const void *a, const void *b)
 {
-  const StatData da = *((const StatData *) a);
-  const StatData db = *((const StatData *) b);
-  return (da.cost < db.cost) ? -1 : (da.cost == db.cost) ? 0 : 1;
+    const StatData da = *((const StatData *) a);
+    const StatData db = *((const StatData *) b);
+    return (da.cost < db.cost) ? -1 : (da.cost == db.cost) ? 0 : 1;
 }
 
 int SortDump(StatData *data, int size)
@@ -180,10 +240,15 @@ int SortDump(StatData *data, int size)
     err = timsort(data, size, sizeof(data[0]), compareCost);
     if (err) {
         fprintf(stderr, "%s:Timsort returned error %d\n", __FUNCTION__, err);
-    } else {
-        for (int i = 0; i < size; ++i) {
-            printf("| %ld | %d | %f | %u | %u |\n", data[i].id, data[i].count, data[i].cost, data[i].primary, data[i].mode);
-        }
     }
+#ifdef DUMP_ARRAYS 
+    else {
+        printf("|------------%s sorted array by cost----------|\n", __FUNCTION__);
+        for (int i = 0; i < size; ++i) {
+            printf("|%d:| %ld | %d | %f | %u | %u |\n", i, data[i].id, data[i].count, data[i].cost, data[i].primary, data[i].mode);
+        }
+        printf("|---------------------------------|\n\n");
+    }
+#endif
     return SUCCESS;
 }
