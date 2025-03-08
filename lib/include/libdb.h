@@ -12,11 +12,11 @@
 #define ERROR_REALLOC_FAILURE -3
 
 typedef struct StatData {
-    long id; //8 bytes
-    int count; //4 bytes
-    float cost; //4 bytes
-    unsigned int primary:1; //4 bytes
-    unsigned int mode:3; //4 bytes
+    long id;
+    int count;
+    float cost;
+    unsigned int primary:1;
+    unsigned int mode:3;
 } StatData;
 
 int StoreDump(char *pathOutFile, StatData *data, int size);
