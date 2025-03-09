@@ -181,7 +181,7 @@ endCase1:
     if (error != SUCCESS) {
         fprintf(stderr, RED "%s:StoreDump case_2_in_a failed. Error:%d\n" RESET, __FUNCTION__, error);
         fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
-        goto endCase1;
+        goto endCase2;
     }
 
     char pathCase2b[512] = { 0 };
@@ -195,7 +195,7 @@ endCase1:
     if (error != SUCCESS) {
         fprintf(stderr, RED "%s:StoreDump case_2_in_b failed. Error:%d\n" RESET, __FUNCTION__, error);
         fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
-        goto endCase1;
+        goto endCase2;
     }
 
     char pathCmd2[2048] = { 0 };
@@ -214,7 +214,7 @@ endCase1:
     if (error != SUCCESS) {
         fprintf(stderr, RED "%s:dbutil failed. Error:%d\n" RESET, __FUNCTION__, error);
         fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
-        goto endCase1;
+        goto endCase2;
     }
     
     StatData *dataA2;
@@ -230,7 +230,7 @@ endCase1:
     if (error != SUCCESS) {
         fprintf(stderr, RED "%s:LoadDump failed. Error:%d\n" RESET, __FUNCTION__, error);
         fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
-        goto endCase1;
+        goto endCase2;
     }
 
     int passed2 = 1;
