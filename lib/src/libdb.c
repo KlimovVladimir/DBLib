@@ -41,6 +41,7 @@ int LoadDump(char *pathOutFile, StatData **data, int* size)
 #endif
 
     while (fscanf(fileOut, "%ld %d %f %u %u", &id, &count, &cost, &primary, &mode) != EOF) {
+        /* Validating of primary and mode fields */
         if (primary > 1 || mode > 7) {
             fprintf(stderr, "%s:Readed invalid value at %d line from file %s\n", __FUNCTION__, *size + 1, pathOutFile);
             fclose(fileOut);
@@ -48,6 +49,7 @@ int LoadDump(char *pathOutFile, StatData **data, int* size)
             return ERROR_INVALID_VALUE;
         }
 
+        /* Reallocation memory for result array */
         if (*size > 0) {
             StatData *dataTmp = realloc(*data, (sizeof(StatData) * ((*size) + 1)));
             if (dataTmp == NULL) {
@@ -78,6 +80,9 @@ int LoadDump(char *pathOutFile, StatData **data, int* size)
     return SUCCESS;
 }
 
+/**
+ * @brief Comparing function by id field. Needed for Timsort
+ */
 static inline int compareId(const void *a, const void *b)
 {
     const StatData da = *((const StatData *) a);
@@ -89,10 +94,12 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
 {
     int i, j = 0;
 
+    /* Allocation memory for result array */
     *dataOut = malloc((sizeA + sizeB) * sizeof(StatData));
 
     int err;
 
+    /* Sorting dataA array by id field */
     err = timsort(dataA, sizeA, sizeof(dataA[0]), compareId);
     if (err) {
         fprintf(stderr, "%s:Timsort returned error %d\n", __FUNCTION__, err);
@@ -107,6 +114,7 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
     }
 #endif
 
+    /* Sorting dataB array by id field */
     err = timsort(dataB, sizeB, sizeof(dataB[0]), compareId);
     if (err) {
         fprintf(stderr, "%s:Timsort returned error %d\n", __FUNCTION__, err);
@@ -121,8 +129,10 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
     }
 #endif
 
+    /* Merging two sorted arrays */
     while (i < sizeA && j < sizeB) {
         if (dataA[i].id < dataB[j].id) {
+            /* If it elem with new id then add it to result array */
             if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataA[i].id) {
                 (*dataOut)[*sizeOut].id = dataA[i].id;
                 (*dataOut)[*sizeOut].count = dataA[i].count;
@@ -131,6 +141,7 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
                 (*dataOut)[*sizeOut].mode = dataA[i].mode;
                 (*sizeOut)++;
             }
+            /* If result array contain elem with same id then merge elems */
             else if ((*dataOut)[*sizeOut - 1].id == dataA[i].id) {
                 (*dataOut)[*sizeOut - 1].id = dataA[i].id;
                 (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataA[i].count;
@@ -140,6 +151,7 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
             }
             i++;
         } else if (dataA[i].id > dataB[j].id) {
+            /* If it elem with new id then add it to result array */
             if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataB[j].id) {
                 (*dataOut)[*sizeOut].id = dataB[j].id;
                 (*dataOut)[*sizeOut].count = dataB[j].count;
@@ -148,6 +160,7 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
                 (*dataOut)[*sizeOut].mode = dataB[j].mode;
                 (*sizeOut)++;
             }
+            /* If result array contain elem with same id then merge elems */
             else if ((*dataOut)[*sizeOut - 1].id == dataB[j].id) {
                 (*dataOut)[*sizeOut - 1].id = dataB[j].id;
                 (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataB[j].count;
@@ -157,6 +170,8 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
             }
             j++;
         } else {
+            /* dataA[i].id == dataB[j].id case */
+            /* If it elem with new id then add it to result array */
             if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataA[i].id) {
                 (*dataOut)[*sizeOut].id = dataA[i].id;
                 (*dataOut)[*sizeOut].count = dataA[i].count + dataB[j].count;
@@ -165,6 +180,7 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
                 (*dataOut)[*sizeOut].mode = MAX(dataA[i].mode, dataB[j].mode);
                 (*sizeOut)++;
             }
+            /* If result array contain elem with same id then merge elems */
             else {
                 (*dataOut)[*sizeOut - 1].id = dataA[i].id;
                 (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataA[i].count + dataB[j].count;
@@ -177,7 +193,9 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
         }
     }
 
+    /* Adding remaining elements from dataA[i] */
     while (i < sizeA) {
+        /* If it elem with new id then add it to result array */
         if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataA[i].id) {
             (*dataOut)[*sizeOut].id = dataA[i].id;
             (*dataOut)[*sizeOut].count = dataA[i].count;
@@ -186,6 +204,7 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
             (*dataOut)[*sizeOut].mode = dataA[i].mode;
             (*sizeOut)++;
         }
+        /* If result array contain elem with same id then merge elems */
         else if ((*dataOut)[*sizeOut - 1].id == dataA[i].id) {
             (*dataOut)[*sizeOut - 1].id = dataA[i].id;
             (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataA[i].count;
@@ -196,7 +215,9 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
         i++;
     }
 
+    /* Adding remaining elements from dataB[j] */
     while (j < sizeB) {
+        /* If it elem with new id then add it to result array */
         if (*sizeOut == 0 || (*dataOut)[*sizeOut - 1].id != dataB[j].id) {
             (*dataOut)[*sizeOut].id = dataB[j].id;
             (*dataOut)[*sizeOut].count = dataB[j].count;
@@ -205,6 +226,7 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
             (*dataOut)[*sizeOut].mode = dataB[j].mode;
             (*sizeOut)++;
         }
+        /* If result array contain elem with same id then merge elems */
         else if ((*dataOut)[*sizeOut - 1].id == dataB[j].id) {
             (*dataOut)[*sizeOut - 1].id = dataB[j].id;
             (*dataOut)[*sizeOut - 1].count = (*dataOut)[*sizeOut - 1].count + dataB[j].count;
@@ -226,6 +248,9 @@ int JoinDump(StatData *dataA, int sizeA, StatData *dataB, int sizeB, StatData **
     return SUCCESS;
 }
 
+/**
+ * @brief Comparing function by cost field. Needed for Timsort
+ */
 static inline int compareCost(const void *a, const void *b)
 {
     const StatData da = *((const StatData *) a);
@@ -237,9 +262,11 @@ int SortDump(StatData *data, int size)
 {
     int err;
 
+    /* Sorting data array by cost field */
     err = timsort(data, size, sizeof(data[0]), compareCost);
     if (err) {
         fprintf(stderr, "%s:Timsort returned error %d\n", __FUNCTION__, err);
+        return ERROR_TIMSORT_FAILURE;
     }
 #ifdef DUMP_ARRAYS 
     else {

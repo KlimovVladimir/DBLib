@@ -19,6 +19,8 @@ char *uintToBinary(unsigned int num)
 
 int main(int argc, char *argv[])
 {
+    int error;
+
     if (argc != 4) {
         fprintf(stderr, RED "%s:Wrong count of arguments\n" RESET, __FUNCTION__);
         return 1;
@@ -26,20 +28,45 @@ int main(int argc, char *argv[])
 
     StatData *dataA;
     int sizeA = 0;
-    LoadDump(argv[1], &dataA, &sizeA);
+    error = LoadDump(argv[1], &dataA, &sizeA);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:LoadDump dataA failed. Error:%d\n" RESET, __FUNCTION__, error);
+        return 1;
+    }
 
     StatData *dataB;
     int sizeB = 0;
-    LoadDump(argv[2], &dataB, &sizeB);
+    error = LoadDump(argv[2], &dataB, &sizeB);
+
+    if (error != SUCCESS) {
+        free(dataA);
+        fprintf(stderr, RED "%s:LoadDump dataB failed. Error:%d\n" RESET, __FUNCTION__, error);
+        return 1;
+    }
 
     StatData *dataOut;
     int sizeOut = 0;
-    JoinDump(dataA, sizeA, dataB, sizeB, &dataOut, &sizeOut);
+    error = JoinDump(dataA, sizeA, dataB, sizeB, &dataOut, &sizeOut);
 
-    SortDump(dataOut, sizeOut);
+    free(dataA);
+    free(dataB);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:JoinDump failed. Error:%d\n" RESET, __FUNCTION__, error);
+        return 1;
+    }
+
+    error = SortDump(dataOut, sizeOut);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:SortDump failed. Error:%d\n" RESET, __FUNCTION__, error);
+        free(dataOut);
+        return 1;
+    }
 
     int size = sizeOut >= 10 ? 10 : sizeOut;
-    printf("|------------DButil: sorted array by cost----------|\n", __FUNCTION__);
+    printf("|------------DButil: final array----------|\n", __FUNCTION__);
     for (int i = 0; i < size; ++i) {
         char *res = uintToBinary(dataOut[i].mode);
         printf("|%d:| 0x%lx | %d | %.3E | %c | %s |\n", i, dataOut[i].id, dataOut[i].count, dataOut[i].cost, (dataOut[i].primary) ? 'y' : 'n', uintToBinary(dataOut[i].mode));
@@ -47,7 +74,13 @@ int main(int argc, char *argv[])
     }
     printf("|---------------------------------|\n\n");
 
-    StoreDump(argv[3], dataOut, sizeOut);
+    error = StoreDump(argv[3], dataOut, sizeOut);
+    free(dataOut);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:SortDump failed. Error:%d\n" RESET, __FUNCTION__, error);
+        return 1;
+    }
 
     return 0;
 }

@@ -1,5 +1,8 @@
 #include <libdb.h>
 
+#define RED "\x1B[31m"
+#define RESET "\x1B[0m"
+
 int main(int argc, char *argv[])
 {
     const StatData case_1_in_a[10] = 
@@ -14,6 +17,14 @@ int main(int argc, char *argv[])
     {.id = 90889, .count = 13, .cost = 1212.4354324, .primary = 0, .mode=2 },
     {.id = 234, .count = 1, .cost = 88.90, .primary = 1, .mode=7 }};
 
-    StoreDump(argv[1], &case_1_in_a, 10);
+    int error;
+
+    error = StoreDump(argv[1], &case_1_in_a, 10);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:StoreDump failed. Error:%d\n" RESET, __FUNCTION__, error);
+        return 1;
+    }
+
     return 0;
 }

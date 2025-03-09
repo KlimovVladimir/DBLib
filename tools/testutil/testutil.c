@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
     }
 
     clock_t begin, end;
+    int error;
 
     ////////////////////Case 1////////////////////
     /* Содержимое для исходных файлов */
@@ -32,17 +33,29 @@ int main(int argc, char *argv[])
     strcat(pathCase1a, argv[1]);
     strcat(pathCase1a, "case_1_in_a.txt");
     begin = clock();
-    StoreDump(&pathCase1a, case_1_in_a, 2);
+    error = StoreDump(&pathCase1a, case_1_in_a, 2);
     end = clock();
     double StoreDumpTimeSpent1 = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:StoreDump case_1_in_a failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 1 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
 
     char pathCase1b[512] = { 0 };
     strcat(pathCase1b, argv[1]);
     strcat(pathCase1b, "case_1_in_b.txt");
     begin = clock();
-    StoreDump(&pathCase1b, case_1_in_b, 2);
+    error = StoreDump(&pathCase1b, case_1_in_b, 2);
     end = clock();
     double StoreDumpTimeSpent2 = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:StoreDump case_1_in_b failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 1 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
 
     char pathCmd[2048] = { 0 };
     strcat(pathCmd, "dbutil ");
@@ -53,9 +66,15 @@ int main(int argc, char *argv[])
     strcat(pathCmd, argv[1]);
     strcat(pathCmd, "case_1_out.txt");
     begin = clock();
-    system(pathCmd);
+    error = system(pathCmd);
     end = clock();
     double dbutilTimeSpent = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:dbutil failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 1 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
     
     StatData *dataA;
     int sizeA = 0;
@@ -63,9 +82,15 @@ int main(int argc, char *argv[])
     strcat(pathCase1Out, argv[1]);
     strcat(pathCase1Out, "case_1_out.txt");
     begin = clock();
-    LoadDump(&pathCase1Out, &dataA, &sizeA);
+    error = LoadDump(&pathCase1Out, &dataA, &sizeA);
     end = clock();
     double LoadDumpTimeSpent = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:LoadDump failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 1 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
 
     int passed = 1;
     for (int i = 0; i < sizeA; ++i) {
@@ -78,6 +103,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    free(dataA);
+
     if (passed) {
         fprintf(stdout, GRN "%s:Case 1 passed\n" RESET, __FUNCTION__);
         fprintf(stdout, "%s:StoreDumpTimeSpent1: %lf\n", __FUNCTION__, StoreDumpTimeSpent1);
@@ -86,6 +113,7 @@ int main(int argc, char *argv[])
         fprintf(stdout, "%s:LoadDumpTimeSpent: %lf\n", __FUNCTION__, LoadDumpTimeSpent);
     }
 
+endCase1:
 
     ////////////////////Case 2////////////////////
     /* Содержимое для исходных файлов */
@@ -145,17 +173,29 @@ int main(int argc, char *argv[])
     strcat(pathCase2a, argv[1]);
     strcat(pathCase2a, "case_2_in_a.txt");
     begin = clock();
-    StoreDump(&pathCase2a, case_2_in_a, 10);
+    error = StoreDump(&pathCase2a, case_2_in_a, 10);
     end = clock();
     double StoreDumpTimeSpent21 = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:StoreDump case_2_in_a failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
 
     char pathCase2b[512] = { 0 };
     strcat(pathCase2b, argv[1]);
     strcat(pathCase2b, "case_2_in_b.txt");
     begin = clock();
-    StoreDump(&pathCase2b, case_2_in_b, 30);
+    error = StoreDump(&pathCase2b, case_2_in_b, 30);
     end = clock();
     double StoreDumpTimeSpent22 = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:StoreDump case_2_in_b failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
 
     char pathCmd2[2048] = { 0 };
     strcat(pathCmd2, "dbutil ");
@@ -166,9 +206,15 @@ int main(int argc, char *argv[])
     strcat(pathCmd2, argv[1]);
     strcat(pathCmd2, "case_2_out.txt");
     begin = clock();
-    system(pathCmd2);
+    error = system(pathCmd2);
     end = clock();
     double dbutilTimeSpent2 = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:dbutil failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
     
     StatData *dataA2;
     int sizeA2 = 0;
@@ -176,9 +222,15 @@ int main(int argc, char *argv[])
     strcat(pathCase2Out, argv[1]);
     strcat(pathCase2Out, "case_2_out.txt");
     begin = clock();
-    LoadDump(&pathCase2Out, &dataA2, &sizeA2);
+    error = LoadDump(&pathCase2Out, &dataA2, &sizeA2);
     end = clock();
     double LoadDumpTimeSpent2 = (double)(end - begin) / (CLOCKS_PER_SEC / 1000);
+
+    if (error != SUCCESS) {
+        fprintf(stderr, RED "%s:LoadDump failed. Error:%d\n" RESET, __FUNCTION__, error);
+        fprintf(stderr, RED "%s:Case 2 not passed\n" RESET, __FUNCTION__);
+        goto endCase1;
+    }
 
     int passed2 = 1;
     for (int i = 0; i < sizeA2; ++i) {
@@ -191,13 +243,17 @@ int main(int argc, char *argv[])
         }
     }
 
+    free(dataA2);
+
     if (passed2) {
         fprintf(stdout, GRN "%s:Case 2 passed\n" RESET, __FUNCTION__);
-        fprintf(stdout, "%s:StoreDumpTimeSpent21: %lf\n", __FUNCTION__, StoreDumpTimeSpent21);
-        fprintf(stdout, "%s:StoreDumpTimeSpent22: %lf\n", __FUNCTION__, StoreDumpTimeSpent22);
-        fprintf(stdout, "%s:dbutilTimeSpent2: %lf\n", __FUNCTION__, dbutilTimeSpent2);
-        fprintf(stdout, "%s:LoadDumpTimeSpent2: %lf\n", __FUNCTION__, LoadDumpTimeSpent2);
+        fprintf(stdout, "%s:StoreDumpTimeSpent1: %lf\n", __FUNCTION__, StoreDumpTimeSpent21);
+        fprintf(stdout, "%s:StoreDumpTimeSpent2: %lf\n", __FUNCTION__, StoreDumpTimeSpent22);
+        fprintf(stdout, "%s:dbutilTimeSpent: %lf\n", __FUNCTION__, dbutilTimeSpent2);
+        fprintf(stdout, "%s:LoadDumpTimeSpent: %lf\n", __FUNCTION__, LoadDumpTimeSpent2);
     }
+
+endCase2:
 
     return 0;
 }
